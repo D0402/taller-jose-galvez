@@ -17,7 +17,7 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
           });
           onUpdate();
           e.target.reset();
-        }} className="form-grid" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        }} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input name="cliente" placeholder="Nombre del Cliente" className="input-field" style={{ flex: 1 }} required />
           <input name="equipo" placeholder="Equipo (Ej: Laptop Asus)" className="input-field" style={{ flex: 1 }} required />
           <input name="falla" placeholder="Falla reportada" className="input-field" style={{ flex: 1 }} required />
@@ -39,41 +39,51 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
           <tbody>
             {reparaciones.length === 0 ? (
               <tr>
-                <td colSpan="3" style={{ textAlign: 'center', color: '#666', padding: '20px' }}>No hay órdenes de servicio activas.</td>
+                <td colSpan="3" style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                  No hay órdenes de servicio activas.
+                </td>
               </tr>
             ) : (
               reparaciones.map(rep => (
-                <tr key={rep.ID}>
+                <tr key={rep.id ?? rep.ID}>
                   <td>
-                    <strong>{rep.EQUIPO}</strong> <br/>
-                    <small style={{ color: 'var(--text-gray)' }}>Cliente: {rep.CLIENTE} (Orden #{rep.ID})</small>
+                    <strong>{rep.equipo ?? rep.EQUIPO}</strong><br/>
+                    <small style={{ color: 'var(--text-gray)' }}>
+                      Cliente: {rep.cliente ?? rep.CLIENTE} (Orden #{rep.id ?? rep.ID})
+                    </small>
                   </td>
                   <td>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       min="0"
                       max="100"
-                      defaultValue={rep.PROGRESO} 
+                      defaultValue={rep.progreso ?? rep.PROGRESO}
                       className="input-field"
                       style={{ width: '60px', textAlign: 'center', background: '#000' }}
                       onBlur={async (e) => {
-                        await fetch(`${API}/reparaciones/${rep.ID}`, {
+                        const id = rep.id ?? rep.ID;
+                        const val = Number(e.target.value);
+                        await fetch(`${API}/reparaciones/${id}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ progreso: e.target.value, estado: Number(e.target.value) === 100 ? 'Listo para entrega' : 'En Reparación' })
+                          body: JSON.stringify({
+                            progreso: val,
+                            estado: val === 100 ? 'Listo para entrega' : 'En Reparación'
+                          })
                         });
                         onUpdate();
                       }}
                     /> %
                   </td>
                   <td>
-                    <button 
+                    <button
                       onClick={async () => {
-                        if(confirm('¿Seguro que deseas eliminar esta orden de servicio?')) {
-                          await fetch(`${API}/reparaciones/${rep.ID}`, { method: 'DELETE' });
+                        const id = rep.id ?? rep.ID;
+                        if (confirm('¿Seguro que deseas eliminar esta orden de servicio?')) {
+                          await fetch(`${API}/reparaciones/${id}`, { method: 'DELETE' });
                           onUpdate();
                         }
-                      }} 
+                      }}
                       style={{ background: 'transparent', color: 'var(--red-danger)', border: '1px solid var(--red-danger)', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer' }}
                     >
                       🗑️ Eliminar
