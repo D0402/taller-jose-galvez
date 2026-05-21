@@ -3,33 +3,13 @@ import React, { useState } from 'react';
 const API = import.meta.env.VITE_API_URL || '/api';
 
 export default function Login({ onLogin }) {
-  const [modo, setModo] = useState('admin'); // 'admin' | 'cliente'
-  const [correo, setCorreo] = useState('');
-  const [password, setPassword] = useState('');
+  const [modo, setModo] = useState('cliente');
   const [nombreCliente, setNombreCliente] = useState('');
   const [ordenCliente, setOrdenCliente] = useState('');
+  const [adminUser, setAdminUser] = useState('');
+  const [adminPass, setAdminPass] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
-
-  const handleAdminSubmit = async (e) => {
-    e.preventDefault();
-    setCargando(true);
-    setError('');
-    try {
-      const res = await fetch(`${API}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, password })
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error); return; }
-      onLogin(data);
-    } catch {
-      setError('No se pudo conectar con el servidor.');
-    } finally {
-      setCargando(false);
-    }
-  };
 
   const handleClienteSubmit = async (e) => {
     e.preventDefault();
@@ -53,9 +33,28 @@ export default function Login({ onLogin }) {
         token: null,
         rol: 'cliente',
         correo: nombreCliente.trim(),
-        nombreCliente: nombreCliente.trim(),
-        ordenId: ordenCliente.trim()
+        nombreCliente: nombreCliente.trim()
       });
+    } catch {
+      setError('No se pudo conectar con el servidor.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleAdminSubmit = async (e) => {
+    e.preventDefault();
+    setCargando(true);
+    setError('');
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: adminUser, password: adminPass })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error); return; }
+      onLogin(data);
     } catch {
       setError('No se pudo conectar con el servidor.');
     } finally {
@@ -169,13 +168,13 @@ export default function Login({ onLogin }) {
           <form onSubmit={handleAdminSubmit}>
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', color: '#374151', marginBottom: '6px', fontWeight: '500' }}>
-                Correo Electrónico
+                Usuario
               </label>
               <input
-                type="email"
-                placeholder="usuario@ejemplo.com"
-                value={correo}
-                onChange={e => setCorreo(e.target.value)}
+                type="text"
+                placeholder="admin"
+                value={adminUser}
+                onChange={e => setAdminUser(e.target.value)}
                 required
                 autoFocus
                 style={{
@@ -194,8 +193,8 @@ export default function Login({ onLogin }) {
               <input
                 type="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                value={adminPass}
+                onChange={e => setAdminPass(e.target.value)}
                 required
                 style={{
                   width: '100%', padding: '12px 14px', borderRadius: '10px',
