@@ -1,0 +1,98 @@
+/* Variables de color para no repetir */
+:root {
+  --bg-dark: #0a0a0a;
+  --bg-card: #171717;
+  --blue-primary: #3b82f6;
+  --green-success: #22c55e;
+  --red-danger: #ef4444;
+  --border: #333;
+  --text-gray: #94a3b8;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  color: white;
+  font-family: system-ui, sans-serif;
+}
+
+/* Navegación */
+.navbar {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px;
+  background-color: #111;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-button {
+  padding: 10px 20px;
+  background: transparent;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.nav-button.active {
+  background-color: var(--blue-primary);
+}
+
+/* Tarjetas */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--bg-card);
+  padding: 20px;
+  border-radius: 15px;
+  border: 1px solid var(--border);
+}
+
+/* Formularios e Inputs */
+.form-container {
+  background: var(--bg-card);
+  padding: 25px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+
+.input-field {
+  padding: 12px;
+  background-color: #000;
+  border: 1px solid var(--border);
+  color: white;
+  border-radius: 8px;
+  outline: none;
+}
+
+.btn-save {
+  background: var(--green-success);
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Tablas */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th, .admin-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #222;
+}
