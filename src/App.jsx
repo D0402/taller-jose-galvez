@@ -16,13 +16,18 @@ export default function App() {
     try {
       const headers = sesion?.token ? { Authorization: `Bearer ${sesion.token}` } : {};
 
-      // Si es cliente, filtra por su correo
-      const repUrl = sesion?.rol === 'cliente'
-        ? `${API}/reparaciones?correo=${encodeURIComponent(sesion.correo)}`
-        : `${API}/reparaciones`;
+      const resRep = await fetch(`${API}/reparaciones`, { headers });
+      const todasRep = await resRep.json();
 
-      const resRep = await fetch(repUrl, { headers });
-      setReparaciones(await resRep.json());
+      // Si es cliente, filtrar solo sus órdenes por nombre
+      if (sesion?.rol === 'cliente') {
+        const suyas = todasRep.filter(r =>
+          (r.cliente ?? r.CLIENTE ?? '').toLowerCase() === sesion.correo.toLowerCase()
+        );
+        setReparaciones(suyas);
+      } else {
+        setReparaciones(todasRep);
+      }
 
       const resInv = await fetch(`${API}/inventario`, { headers });
       setInventario(await resInv.json());
