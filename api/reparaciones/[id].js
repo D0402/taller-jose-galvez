@@ -12,6 +12,7 @@ export default async function handler(req, res) {
       )
       res.json({ success: true })
     } catch (err) {
+      console.error('Error PUT reparaciones:', err)
       res.status(500).json({ error: err.message })
     }
   } else if (req.method === 'DELETE') {
@@ -19,6 +20,7 @@ export default async function handler(req, res) {
       await pool.query(`DELETE FROM reparaciones WHERE id = $1`, [id])
       res.json({ success: true })
     } catch (err) {
+      console.error('Error DELETE reparaciones:', err)
       res.status(500).json({ error: err.message })
     }
   } else {
