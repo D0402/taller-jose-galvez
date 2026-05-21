@@ -3,7 +3,7 @@ import React from 'react';
 export default function Gestion({ reparaciones, API, onUpdate }) {
   return (
     <div className="gestion-container">
-      
+
       {/* 1. FORMULARIO: REGISTRAR REPARACIÓN */}
       <div className="form-container">
         <h3>➕ Nuevo Ingreso Técnico (Orden de Trabajo)</h3>
@@ -18,7 +18,14 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
           onUpdate();
           e.target.reset();
         }} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input name="cliente" placeholder="Nombre del Cliente" className="input-field" style={{ flex: 1 }} required />
+          <input
+            name="correo_cliente"
+            type="email"
+            placeholder="Correo del Cliente"
+            className="input-field"
+            style={{ flex: 1 }}
+            required
+          />
           <input name="equipo" placeholder="Equipo (Ej: Laptop Asus)" className="input-field" style={{ flex: 1 }} required />
           <input name="falla" placeholder="Falla reportada" className="input-field" style={{ flex: 1 }} required />
           <button type="submit" className="btn-save" style={{ padding: '0 25px' }}>Guardar Equipo</button>
@@ -47,7 +54,7 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
               reparaciones.map(rep => (
                 <tr key={rep.id ?? rep.ID}>
                   <td>
-                    <strong>{rep.equipo ?? rep.EQUIPO}</strong><br/>
+                    <strong>{rep.equipo ?? rep.EQUIPO}</strong><br />
                     <small style={{ color: 'var(--text-gray)' }}>
                       Cliente: {rep.cliente ?? rep.CLIENTE} (Orden #{rep.id ?? rep.ID})
                     </small>
@@ -111,18 +118,18 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
           e.target.reset();
         }} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input name="nombre" placeholder="Nombre del Producto/Repuesto" className="input-field" style={{ flex: 2, minWidth: '200px' }} required />
-          
+
           <select name="categoria" className="input-field" style={{ flex: 1, minWidth: '150px' }} required>
             <option value="Repuesto">🔧 Repuesto Técnico</option>
             <option value="Hardware">💻 Hardware / Componentes</option>
             <option value="Software">💿 Software / Licencias</option>
             <option value="Periferico">🖱️ Periféricos / Accesorios</option>
           </select>
-          
+
           <input name="stock" type="number" placeholder="Stock inicial" className="input-field" style={{ flex: 1, minWidth: '100px' }} required />
           <input name="precio" type="number" step="0.01" placeholder="Precio S/" className="input-field" style={{ flex: 1, minWidth: '100px' }} required />
           <input name="descripcion" placeholder="Descripción corta (Opcional)" className="input-field" style={{ flex: 2, minWidth: '200px' }} />
-          
+
           <button type="submit" className="btn-save" style={{ background: '#22c55e', padding: '0 25px', width: '100%', marginTop: '5px' }}>
             ➕ Añadir al Inventario General
           </button>

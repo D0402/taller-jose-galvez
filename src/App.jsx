@@ -15,8 +15,15 @@ export default function App() {
   const cargarDatos = async () => {
     try {
       const headers = sesion?.token ? { Authorization: `Bearer ${sesion.token}` } : {};
-      const resRep = await fetch(`${API}/reparaciones`, { headers });
+
+      // Si es cliente, filtra por su correo
+      const repUrl = sesion?.rol === 'cliente'
+        ? `${API}/reparaciones?correo=${encodeURIComponent(sesion.correo)}`
+        : `${API}/reparaciones`;
+
+      const resRep = await fetch(repUrl, { headers });
       setReparaciones(await resRep.json());
+
       const resInv = await fetch(`${API}/inventario`, { headers });
       setInventario(await resInv.json());
     } catch (error) {
@@ -64,7 +71,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: '#0a0a0a' }}>
       <header style={{ background: '#4f46e5', padding: '12px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '38px', height: '38px', background: 'rgba(255,255,255,0.2)',
