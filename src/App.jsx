@@ -4,7 +4,7 @@ import Progreso from './components/Progreso';
 import Gestion from './components/Gestion';
 import Inventario from './components/Inventario';
 
-const API = 'http://localhost:3001/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export default function App() {
   const [sesion, setSesion] = useState(null);
