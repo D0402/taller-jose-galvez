@@ -19,9 +19,9 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
           e.target.reset();
         }} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
-            name="correo_cliente"
-            type="email"
-            placeholder="Correo del Cliente"
+            name="cliente"
+            type="text"
+            placeholder="Nombre del Cliente"
             className="input-field"
             style={{ flex: 1 }}
             required
