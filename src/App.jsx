@@ -4,6 +4,7 @@ import Progreso from './components/Progreso';
 import Gestion from './components/Gestion';
 import Inventario from './components/Inventario';
 import Pedidos from './components/Pedidos';
+import Historial from './components/Historial';
 
 const API = import.meta.env.VITE_API_URL || '/api'
 
@@ -142,6 +143,7 @@ export default function App() {
               )}
             </button>
           )}
+          {esAdmin && navBtn('historial', '📊 Historial')}
         </nav>
       </header>
 
@@ -159,6 +161,7 @@ export default function App() {
         {tab === 'pedidos' && esAdmin && (
           <Pedidos API={API} token={sesion.token} />
         )}
+        {tab === 'historial' && <Historial API={API} />}
       </main>
     </div>
   );
