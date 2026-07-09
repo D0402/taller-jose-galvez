@@ -6,7 +6,7 @@ export default function Chat({ reparacionId, autor, nombre }) {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const bottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const cargarMensajes = async () => {
     try {
@@ -25,7 +25,9 @@ export default function Chat({ reparacionId, autor, nombre }) {
   }, [reparacionId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [mensajes]);
 
   const enviar = async (e) => {
@@ -58,18 +60,21 @@ export default function Chat({ reparacionId, autor, nombre }) {
         background: '#4f46e5', padding: '12px 16px',
         borderBottom: '2px solid #3730a3'
       }}>
-        <p style={{ margin: 0, color: 'white', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <p style={{ margin: 0, color: 'white', fontSize: '13px', fontWeight: '600' }}>
           💬 Chat de la orden
         </p>
       </div>
 
       {/* Mensajes */}
-      <div style={{
-        height: '240px', overflowY: 'auto', padding: '14px',
-        background: '#f1f5f9', display: 'flex',
-        flexDirection: 'column', gap: '10px',
-        borderBottom: '2px solid #94a3b8'
-      }}>
+      <div
+        ref={chatContainerRef}
+        style={{
+          height: '240px', overflowY: 'auto', padding: '14px',
+          background: '#f1f5f9', display: 'flex',
+          flexDirection: 'column', gap: '10px',
+          borderBottom: '2px solid #94a3b8'
+        }}
+      >
         {mensajes.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', margin: 'auto' }}>
             No hay mensajes aún. ¡Escribe el primero!
@@ -101,7 +106,6 @@ export default function Chat({ reparacionId, autor, nombre }) {
             );
           })
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
