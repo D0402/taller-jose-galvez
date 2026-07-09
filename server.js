@@ -323,31 +323,32 @@ app.post('/api/ventas', async (req, res) => {
   }
 })
 
+// 🟢 1. RUTA DE VENTAS ACTIVAS CORREGIDA (Sin alias rotos)
 app.get('/api/ventas', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT
-      v.id,
-      v.cliente,
-      v.total,
-      v.fecha,
-      v.estado,  -- 👈 Agregamos el estado aquí
-      vd.cantidad,
-      vd.precio_unitario,
-      i.nombre AS producto
+      SELECT 
+        v.id,
+        v.cliente,
+        v.total,
+        v.fecha,
+        v.estado,
+        i.nombre AS producto,         -- 👈 Trae el nombre del producto real
+        vd.cantidad,                 -- 👈 Trae la cantidad comprada
+        vd.precio_unitario
       FROM ventas v
-      JOIN venta_detalle vd ON vd.venta_id=v.id
-      JOIN inventario i ON i.id=vd.inventario_id
-      ORDER BY v.fecha DESC
-    `)
-
-    res.json(result.rows)
+      LEFT JOIN venta_detalle vd ON v.id = vd.venta_id
+      LEFT JOIN inventario i ON vd.inventario_id = i.id
+      WHERE COALESCE(v.estado, '') NOT IN ('Entregado', 'Cancelado')
+      ORDER BY v.id DESC
+    `);
+    res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error("Error en GET /api/ventas:", err);
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// Nuevo endpoint para actualizar el estado del pedido (Entregado / Cancelado)
 app.put('/api/ventas/:id', async (req, res) => {
   const { estado } = req.body
   const { id } = req.params
@@ -372,9 +373,35 @@ app.put('/api/ventas/:id', async (req, res) => {
 
 
 // =========================
-// historial
+// HISTORIAL
 // =========================
-// Nuevo endpoint para el historial de reparaciones
+
+// 🟢 2. RUTA DE HISTORIAL DE VENTAS CORREGIDA
+app.get('/api/historial/ventas', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        v.id,
+        v.cliente,
+        v.total,
+        v.fecha,
+        v.estado,
+        i.nombre AS producto,
+        vd.cantidad,
+        vd.precio_unitario
+      FROM ventas v
+      LEFT JOIN venta_detalle vd ON v.id = vd.venta_id
+      LEFT JOIN inventario i ON vd.inventario_id = i.id
+      WHERE COALESCE(v.estado, '') IN ('Entregado', 'Cancelado')
+      ORDER BY v.id DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error en GET /api/historial/ventas:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/historial/reparaciones', async (req, res) => {
   try {
     const result = await pool.query(`

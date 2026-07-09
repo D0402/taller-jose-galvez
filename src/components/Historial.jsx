@@ -24,7 +24,7 @@ export default function Historial({ API, token }) {
       setReparaciones(filtradasRep);
 
       // 2. Traer Ventas del catálogo
-      const resVentas = await fetch(`${API}/ventas`, { headers });
+      const resVentas = await fetch(`${API}/historial/ventas`, { headers });
       const dataVentas = await resVentas.json();
       
       // Agrupar ventas por ID (igual que en Pedidos)
