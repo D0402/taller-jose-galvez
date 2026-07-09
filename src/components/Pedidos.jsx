@@ -52,15 +52,19 @@ export default function Pedidos({ API, token }) {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` })
       };
-
-      const res = await fetch(`${API}/ventas/${idVenta}`, {
+  
+      // Aseguramos que use la variable API (ej: https://api-tu-backend.com/api/ventas/id)
+      const urlDestino = `${API}/ventas/${idVenta}`;
+      console.log("🔗 Enviando actualización a:", urlDestino);
+  
+      const res = await fetch(urlDestino, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ estado: nuevoEstado })
       });
-
+  
       if (res.ok) {
-        cargarPedidos(); // Recargar datos para refrescar la interfaz
+        cargarPedidos(); 
       } else {
         alert("No se pudo actualizar el estado del pedido");
       }
