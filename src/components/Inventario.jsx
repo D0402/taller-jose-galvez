@@ -5,6 +5,8 @@ export default function Inventario({ items, tipo, API, onUpdate, esVendedor, tok
   const [nombreCliente, setNombreCliente] = useState('');
   const [confirmado, setConfirmado] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [mostrarEditor, setMostrarEditor] = useState(false);
+  const [productoEditar, setProductoEditar] = useState(null);
 
   const filtrados = items.filter((item) => {
     const cat = (item.CATEGORIA ?? item.categoria ?? '').trim();
@@ -72,7 +74,56 @@ export default function Inventario({ items, tipo, API, onUpdate, esVendedor, tok
     }
   };
 
-  // Pantalla de confirmación
+  const editarProducto = (producto) => {
+    setProductoEditar({ ...producto }); // Clonamos el objeto para evitar mutaciones directas indeseadas
+    setMostrarEditor(true);
+  };
+
+  const guardarCambios = async () => {
+    console.log("Entró a guardarCambios");
+    console.log("Producto:", productoEditar);
+  
+    if (!productoEditar) return;
+  
+    const id = productoEditar.id ?? productoEditar.ID;
+    console.log("ID:", id);
+  
+    try {
+      const res = await fetch(`${API}/inventario/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          nombre: productoEditar.nombre ?? productoEditar.NOMBRE,
+          categoria: productoEditar.categoria ?? productoEditar.CATEGORIA,
+          precio: Number(productoEditar.precio ?? productoEditar.PRECIO),
+          stock: Number(productoEditar.stock ?? productoEditar.STOCK),
+          descripcion: productoEditar.descripcion ?? productoEditar.DESCRIPCION ?? ""
+        })
+      });
+  
+      console.log("Status:", res.status);
+      const data = await res.json();
+      console.log("Respuesta:", data);
+  
+      if (!data.success) {
+        alert("No se pudo actualizar");
+        return;
+      }
+  
+      setMostrarEditor(false);
+      setProductoEditar(null);
+      onUpdate();
+  
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión");
+    }
+  };
+
+  // Pantalla de confirmación de compra exitosa
   if (confirmado) {
     return (
       <div style={{ maxWidth: '480px', margin: '40px auto', textAlign: 'center' }}>
@@ -119,9 +170,78 @@ export default function Inventario({ items, tipo, API, onUpdate, esVendedor, tok
         {tipo === 'productos' ? 'Agrega productos a tu carrito y confirma tu pedido' : 'Inventario de repuestos disponibles'}
       </p>
 
+      {/* ========================================================= */}
+      {/* PANEL DE FORMULARIO DE EDICIÓN (VISUAL)                   */}
+      {/* ========================================================= */}
+      {mostrarEditor && productoEditar && esVendedor && (
+        <div style={{
+          background: '#1a1a1a', padding: '18px', borderRadius: '12px',
+          marginBottom: '24px', border: '1px solid #2563eb', color: '#fff'
+        }}>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', color: '#60a5fa', fontWeight: '500' }}>
+            📝 Modificar: {productoEditar.NOMBRE ?? productoEditar.nombre}
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+            
+            <label style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              Nombre del artículo:
+              <input 
+                type="text" 
+                value={productoEditar.nombre ?? productoEditar.NOMBRE ?? ''} 
+                onChange={e => setProductoEditar({...productoEditar, nombre: e.target.value, NOMBRE: e.target.value})}
+                style={{ padding: '8px', background: '#0a0a0a', border: '0.5px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '13px' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              Precio (S/):
+              <input 
+                type="number" 
+                value={productoEditar.precio ?? productoEditar.PRECIO ?? 0} 
+                onChange={e => setProductoEditar({...productoEditar, precio: e.target.value, PRECIO: e.target.value})}
+                style={{ padding: '8px', background: '#0a0a0a', border: '0.5px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '13px' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              Unidades en Stock:
+              <input 
+                type="number" 
+                value={productoEditar.stock ?? productoEditar.STOCK ?? 0} 
+                onChange={e => setProductoEditar({...productoEditar, stock: e.target.value, STOCK: e.target.value})}
+                style={{ padding: '8px', background: '#0a0a0a', border: '0.5px solid #334155', color: '#fff', borderRadius: '8px', fontSize: '13px' }}
+              />
+            </label>
+
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+            <button
+              onClick={guardarCambios}
+              style={{
+                padding: "8px 18px", borderRadius: "8px", border: "none",
+                cursor: "pointer", background: "#10b981", color: "white", fontWeight: "500", fontSize: '13px'
+              }}
+            >
+              💾 Guardar cambios
+            </button>
+            <button
+              onClick={() => { setMostrarEditor(false); setProductoEditar(null); }}
+              style={{
+                padding: "8px 18px", borderRadius: "8px", border: "none",
+                cursor: "pointer", background: "#374151", color: "#94a3b8", fontSize: '13px'
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+      {/* ========================================================= */}
+
       <div style={{ display: 'grid', gridTemplateColumns: tipo === 'productos' ? '1fr 240px' : '1fr', gap: '20px', alignItems: 'start' }}>
 
-        {/* Catálogo */}
+        {/* Catálogo de Tarjetas */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px' }}>
           {filtrados.length === 0 ? (
             <p style={{ color: '#475569', gridColumn: '1/-1' }}>No hay productos disponibles.</p>
@@ -179,16 +299,22 @@ export default function Inventario({ items, tipo, API, onUpdate, esVendedor, tok
                 )}
 
                 {esVendedor && (
-                  <button onClick={async () => {
-                    if (confirm('¿Eliminar este producto?')) {
-                      await fetch(`${API}/inventario/${id}`, {
-                        method: 'DELETE',
-                        headers: token ? { Authorization: `Bearer ${token}` } : {}
-                      });
-                      onUpdate();
-                    }
-                  }} style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: '12px', marginTop: '4px' }}>
-                    🗑️ Dar de baja
+                  <button
+                    onClick={() => editarProducto(item)}
+                    style={{
+                      background: "#2563eb",
+                      color: "white",
+                      border: "none",
+                      borderRadius: '8px',
+                      padding: "8px 10px",
+                      marginTop: "4px",
+                      cursor: "pointer",
+                      width: "100%",
+                      fontSize: '13px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    📝 Editar
                   </button>
                 )}
               </div>
@@ -196,7 +322,7 @@ export default function Inventario({ items, tipo, API, onUpdate, esVendedor, tok
           })}
         </div>
 
-        {/* Carrito */}
+        {/* Columna lateral: Carrito de Compras */}
         {tipo === 'productos' && (
           <div style={{
             background: '#111', border: '0.5px solid #1e293b',
