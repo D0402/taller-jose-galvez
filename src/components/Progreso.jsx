@@ -28,6 +28,9 @@ const mensajePie = (progreso) => {
 };
 
 export default function Progreso({ reparaciones, sesion }) {
+  // 🕵️ Detectamos si el usuario de la sesión actual es admin o cliente
+  const esAdmin = sesion?.rol === 'admin';
+
   return (
     <div>
       <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#0f172a', marginBottom: '4px' }}>
@@ -54,6 +57,10 @@ export default function Progreso({ reparaciones, sesion }) {
           const progreso = Number(rep.PROGRESO ?? rep.progreso ?? 0);
           const estado   = rep.ESTADO  ?? rep.estado   ?? '';
           const badge    = badgeEstado(estado);
+
+          // 🧠 Ajuste dinámico de los roles del Chat
+          const chatAutor = esAdmin ? 'admin' : 'cliente';
+          const chatNombre = esAdmin ? 'Administrador' : cliente;
 
           return (
             <div key={id} style={{
@@ -116,11 +123,11 @@ export default function Progreso({ reparaciones, sesion }) {
                   </div>
                 </div>
 
-                {/* Chat */}
+                {/* Chat Inteligente */}
                 <Chat
                   reparacionId={id}
-                  autor="cliente"
-                  nombre={cliente}
+                  autor={chatAutor}
+                  nombre={chatNombre}
                 />
               </div>
             </div>

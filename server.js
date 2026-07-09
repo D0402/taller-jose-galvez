@@ -330,6 +330,7 @@ app.get('/api/ventas', async (req, res) => {
       v.cliente,
       v.total,
       v.fecha,
+      v.estado,  -- 👈 Agregamos el estado aquí
       vd.cantidad,
       vd.precio_unitario,
       i.nombre AS producto
@@ -340,6 +341,29 @@ app.get('/api/ventas', async (req, res) => {
     `)
 
     res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Nuevo endpoint para actualizar el estado del pedido (Entregado / Cancelado)
+app.put('/api/ventas/:id', async (req, res) => {
+  const { estado } = req.body
+  const { id } = req.params
+
+  if (!estado) {
+    return res.status(400).json({ error: 'El campo estado es requerido' })
+  }
+
+  try {
+    await pool.query(
+      `UPDATE ventas 
+       SET estado = $1 
+       WHERE id = $2`,
+      [estado, id]
+    )
+
+    res.json({ success: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

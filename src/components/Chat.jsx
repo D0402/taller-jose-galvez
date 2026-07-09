@@ -8,11 +8,19 @@ export default function Chat({ reparacionId, autor, nombre }) {
   const [enviando, setEnviando] = useState(false);
   const chatContainerRef = useRef(null);
 
+  const rolActivo = (autor || '').toLowerCase().trim();
+
+  // Función para limpiar correos en pantalla (ej: "jimena@gmail.com" -> "jimena")
+  const formatearNombre = (str) => {
+    if (!str) return 'Usuario';
+    return str.includes('@') ? str.split('@')[0] : str;
+  };
+
   const cargarMensajes = async () => {
     try {
       const res = await fetch(`${API}/mensajes?reparacion_id=${reparacionId}`);
       const data = await res.json();
-      setMensajes(data);
+      setMensajes(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     }
@@ -34,11 +42,20 @@ export default function Chat({ reparacionId, autor, nombre }) {
     e.preventDefault();
     if (!texto.trim()) return;
     setEnviando(true);
+  
+    const autorEnvio = rolActivo === 'admin' ? 'admin' : 'cliente';
+    const nombreEnvio = rolActivo === 'admin' ? 'Administrador' : nombre;
+  
     try {
       await fetch(`${API}/mensajes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reparacion_id: reparacionId, autor, nombre, contenido: texto.trim() })
+        body: JSON.stringify({ 
+          reparacion_id: reparacionId, 
+          autor: autorEnvio, 
+          nombre: nombreEnvio,
+          contenido: texto.trim() 
+        })
       });
       setTexto('');
       cargarMensajes();
@@ -55,7 +72,6 @@ export default function Chat({ reparacionId, autor, nombre }) {
       overflow: 'hidden', marginTop: '16px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
     }}>
-      {/* Header */}
       <div style={{
         background: '#4f46e5', padding: '12px 16px',
         borderBottom: '2px solid #3730a3'
@@ -65,7 +81,6 @@ export default function Chat({ reparacionId, autor, nombre }) {
         </p>
       </div>
 
-      {/* Mensajes */}
       <div
         ref={chatContainerRef}
         style={{
@@ -81,14 +96,22 @@ export default function Chat({ reparacionId, autor, nombre }) {
           </p>
         ) : (
           mensajes.map(msg => {
-            const esMio = msg.autor === autor;
+            const msgAutor = (msg.autor || '').toLowerCase().trim();
+            const esMio = msgAutor === rolActivo;
+
+            // Corrección absoluta basada en el rol del mensaje
+            let nombreEnPantalla = formatearNombre(msg.nombre);
+            if (msgAutor === 'admin') {
+              nombreEnPantalla = 'Administrador';
+            }
+
             return (
               <div key={msg.id} style={{
                 display: 'flex', flexDirection: 'column',
                 alignItems: esMio ? 'flex-end' : 'flex-start'
               }}>
                 <span style={{ fontSize: '10px', color: '#64748b', marginBottom: '3px', fontWeight: '500' }}>
-                  {msg.nombre} · {new Date(msg.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                  {nombreEnPantalla} · {new Date(msg.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 <div style={{
                   background: esMio ? '#4f46e5' : '#ffffff',
@@ -108,7 +131,6 @@ export default function Chat({ reparacionId, autor, nombre }) {
         )}
       </div>
 
-      {/* Input */}
       <form onSubmit={enviar} style={{
         display: 'flex', gap: '8px', padding: '12px 14px',
         background: '#fff', borderTop: '2px solid #94a3b8'
@@ -124,8 +146,6 @@ export default function Chat({ reparacionId, autor, nombre }) {
             outline: 'none', color: '#1e293b', background: '#f8fafc',
             fontWeight: '500'
           }}
-          onFocus={e => e.target.style.borderColor = '#4f46e5'}
-          onBlur={e => e.target.style.borderColor = '#94a3b8'}
         />
         <button
           type="submit"
@@ -135,8 +155,7 @@ export default function Chat({ reparacionId, autor, nombre }) {
             color: 'white', border: 'none',
             padding: '9px 18px', borderRadius: '8px',
             fontSize: '13px', fontWeight: '600',
-            cursor: enviando || !texto.trim() ? 'not-allowed' : 'pointer',
-            transition: 'background 0.2s'
+            cursor: "pointer"
           }}
         >
           {enviando ? '...' : 'Enviar'}
