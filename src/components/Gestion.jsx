@@ -140,20 +140,48 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
                 </div>
               </td>
         
-              <td style={{ paddingTop: '16px', paddingBottom: '16px', verticalAlign: 'top' }}>
-                <button
-                  onClick={async () => {
-                    const id = rep.id ?? rep.ID;
-                    if (confirm('¿Seguro que deseas eliminar esta orden de servicio?')) {
-                      await fetch(`${API}/reparaciones/${id}`, { method: 'DELETE' });
-                      onUpdate();
-                    }
-                  }}
-                  style={{ background: 'transparent', color: 'var(--red-danger)', border: '1px solid var(--red-danger)', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer' }}
-                >
-                  🗑️ Eliminar
-                </button>
-              </td>
+              <td style={{ paddingTop: '16px', paddingBottom: '16px', verticalAlign: 'top', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+  
+  {/* Botón Eliminar Original */}
+  <button
+    onClick={async () => {
+      if (confirm('¿Seguro que deseas eliminar esta orden de servicio?')) {
+        await fetch(`${API}/reparaciones/${id}`, { method: 'DELETE' });
+        onUpdate();
+      }
+    }}
+    style={{ background: 'transparent', color: 'var(--red-danger)', border: '1px solid var(--red-danger)', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer' }}
+  >
+    🗑️ Eliminar
+  </button>
+
+  {/* Botón Entregar Equipo Corregido */}
+  <button
+    onClick={async () => {
+      try {
+        // 💡 Usamos la variable 'id' que ya extrae correctamente el ID único
+        const res = await fetch(`${API}/reparaciones/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ progreso: 100, estado: 'Entregado' })
+        });
+        
+        if (res.ok) {
+          onUpdate(); // 🔄 Llama a tu función nativa para refrescar la tabla al instante
+        }
+      } catch (err) {
+        console.error("Error al entregar el equipo:", err);
+      }
+    }}
+    style={{
+      background: '#22c55e', color: 'white', border: 'none',
+      padding: '6px 12px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer'
+    }}
+  >
+    ✓ Entregar Equipo
+  </button>
+
+</td>
             </tr>
           );
         })
@@ -161,6 +189,7 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
     </tbody>
   </table>
 </div>
+
 
       {/* 3. FORMULARIO: REGISTRAR NUEVO ITEM EN INVENTARIO */}
       <div className="form-container" style={{ borderTop: '2px dashed #333', marginTop: '40px', paddingTop: '30px' }}>

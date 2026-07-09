@@ -13,8 +13,9 @@ export default function Historial({ API, token }) {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
       // 1. Traer Reparaciones
-      const resRep = await fetch(`${API}/reparaciones`, { headers });
+      const resRep = await fetch(`${API}/historial/reparaciones`, { headers });
       const dataRep = await resRep.json();
+      setReparaciones(dataRep);
       // Filtrar solo las que ya estén listas o entregadas
       const filtradasRep = dataRep.filter(r => 
         (r.estado || '').toLowerCase().includes('listo') || 

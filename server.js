@@ -109,6 +109,7 @@ app.get('/api/reparaciones', async (req, res) => {
       progreso,
       estado
       FROM reparaciones
+      WHERE estado != 'Entregado'  -- 👈 Oculta las ya entregadas de la vista activa
       ORDER BY id DESC
     `)
 
@@ -370,6 +371,23 @@ app.put('/api/ventas/:id', async (req, res) => {
 })
 
 
+// =========================
+// historial
+// =========================
+// Nuevo endpoint para el historial de reparaciones
+app.get('/api/historial/reparaciones', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, cliente, equipo, falla, progreso, estado
+      FROM reparaciones
+      WHERE estado = 'Entregado'
+      ORDER BY id DESC
+    `)
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 // =========================
 // MENSAJES (CHAT) - NUEVO
 // =========================
