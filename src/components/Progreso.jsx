@@ -1,4 +1,5 @@
 import React from 'react';
+import Chat from './Chat';
 
 const colorHeader = (progreso) => {
   if (progreso >= 100) return '#0F6E56';
@@ -20,16 +21,16 @@ const badgeEstado = (estado) => {
 };
 
 const mensajePie = (progreso) => {
-  if (progreso === 0)               return '📥 Tu equipo fue recibido y está en cola de atención.';
+  if (progreso === 0)                return '📥 Tu equipo fue recibido y está en cola de atención.';
   if (progreso > 0 && progreso < 50) return '🔍 Diagnóstico en proceso, pronto tendremos novedades.';
   if (progreso < 100)                return '⚙️ Reparación en curso, ya va por más de la mitad.';
   return '✅ ¡Tu equipo está listo! Puedes pasar a recogerlo.';
 };
 
-export default function Progreso({ reparaciones }) {
+export default function Progreso({ reparaciones, sesion }) {
   return (
     <div>
-      <h2 style={{ fontSize: '22px', fontWeight: '500', color: '#fff', marginBottom: '4px' }}>
+      <h2 style={{ fontSize: '22px', fontWeight: '600', color: '#0f172a', marginBottom: '4px' }}>
         Mis reparaciones
       </h2>
       <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>
@@ -38,25 +39,28 @@ export default function Progreso({ reparaciones }) {
 
       {reparaciones.length === 0 ? (
         <div style={{
-          background: '#111', border: '0.5px solid #1e293b', borderRadius: '12px',
-          padding: '40px', textAlign: 'center', color: '#475569'
+          background: '#fff', border: '2px solid #94a3b8', borderRadius: '12px',
+          padding: '40px', textAlign: 'center', color: '#64748b',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
         }}>
           No hay órdenes registradas aún.
         </div>
       ) : (
         reparaciones.map((rep) => {
-          const id       = rep.ID       ?? rep.id;
-          const cliente  = rep.CLIENTE  ?? rep.cliente  ?? '';
-          const equipo   = rep.EQUIPO   ?? rep.equipo   ?? '';
-          const falla    = rep.FALLA    ?? rep.falla    ?? '';
+          const id       = rep.ID      ?? rep.id;
+          const cliente  = rep.CLIENTE ?? rep.cliente  ?? '';
+          const equipo   = rep.EQUIPO  ?? rep.equipo   ?? '';
+          const falla    = rep.FALLA   ?? rep.falla    ?? '';
           const progreso = Number(rep.PROGRESO ?? rep.progreso ?? 0);
-          const estado   = rep.ESTADO   ?? rep.estado   ?? '';
+          const estado   = rep.ESTADO  ?? rep.estado   ?? '';
           const badge    = badgeEstado(estado);
 
           return (
             <div key={id} style={{
               borderRadius: '12px', overflow: 'hidden',
-              marginBottom: '16px', border: '0.5px solid #1e293b'
+              marginBottom: '24px',
+              border: '2px solid #94a3b8',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               {/* Header */}
               <div style={{
@@ -65,30 +69,30 @@ export default function Progreso({ reparaciones }) {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
                 <div>
-                  <h3 style={{ color: 'white', fontSize: '16px', fontWeight: '500', margin: 0 }}>
+                  <h3 style={{ color: 'white', fontSize: '16px', fontWeight: '600', margin: 0 }}>
                     {equipo}
                   </h3>
-                  <small style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                  <small style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>
                     Orden #{id} — {cliente}
                   </small>
                 </div>
                 <span style={{
                   background: badge.bg, color: badge.color,
                   padding: '5px 14px', borderRadius: '20px',
-                  fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap'
+                  fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap'
                 }}>
                   {badge.texto}
                 </span>
               </div>
 
               {/* Body */}
-              <div style={{ padding: '16px 20px', background: '#111' }}>
+              <div style={{ padding: '20px', background: '#fff' }}>
                 {/* Barra */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#475569', marginBottom: '8px', fontWeight: '500' }}>
                   <span>Progreso</span>
                   <span>{progreso}%</span>
                 </div>
-                <div style={{ height: '8px', background: '#1e293b', borderRadius: '10px', overflow: 'hidden', marginBottom: '16px' }}>
+                <div style={{ height: '10px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
                   <div style={{
                     width: `${progreso}%`, height: '100%',
                     background: colorBarra(progreso),
@@ -97,20 +101,27 @@ export default function Progreso({ reparaciones }) {
                 </div>
 
                 {/* Detalle */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
-                  <div>
-                    <p style={{ fontSize: '11px', color: '#475569', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}>
+                    <p style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
                       Descripción del problema
                     </p>
-                    <span style={{ fontSize: '13px', color: '#cbd5e1' }}>{falla}</span>
+                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{falla}</span>
                   </div>
-                  <div>
-                    <p style={{ fontSize: '11px', color: '#475569', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1.5px solid #cbd5e1' }}>
+                    <p style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
                       Estado actual
                     </p>
-                    <span style={{ fontSize: '13px', color: '#cbd5e1' }}>{mensajePie(progreso)}</span>
+                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{mensajePie(progreso)}</span>
                   </div>
                 </div>
+
+                {/* Chat */}
+                <Chat
+                  reparacionId={id}
+                  autor="cliente"
+                  nombre={cliente}
+                />
               </div>
             </div>
           );

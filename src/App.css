@@ -1,28 +1,26 @@
-/* Variables de color para no repetir */
 :root {
-  --bg-dark: #0a0a0a;
-  --bg-card: #171717;
+  --bg-dark: #f8fafc;
+  --bg-card: #ffffff;
   --blue-primary: #3b82f6;
   --green-success: #22c55e;
   --red-danger: #ef4444;
-  --border: #333;
-  --text-gray: #94a3b8;
+  --border: #e2e8f0;
+  --text-gray: #64748b;
 }
 
 body {
   margin: 0;
   background-color: var(--bg-dark);
-  color: white;
+  color: #111;
   font-family: system-ui, sans-serif;
 }
 
-/* Navegación */
 .navbar {
   display: flex;
   justify-content: center;
   gap: 15px;
   padding: 20px;
-  background-color: #111;
+  background-color: #ffffff;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -32,7 +30,7 @@ body {
 .nav-button {
   padding: 10px 20px;
   background: transparent;
-  color: white;
+  color: #111;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -42,9 +40,9 @@ body {
 
 .nav-button.active {
   background-color: var(--blue-primary);
+  color: white;
 }
 
-/* Tarjetas */
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -56,21 +54,23 @@ body {
   padding: 20px;
   border-radius: 15px;
   border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-/* Formularios e Inputs */
 .form-container {
   background: var(--bg-card);
   padding: 25px;
   border-radius: 15px;
   margin-bottom: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .input-field {
   padding: 12px;
-  background-color: #000;
+  background-color: #f1f5f9;
   border: 1px solid var(--border);
-  color: white;
+  color: #111;
   border-radius: 8px;
   outline: none;
 }
@@ -85,14 +85,24 @@ body {
   cursor: pointer;
 }
 
-/* Tablas */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.admin-table th, .admin-table td {
+.admin-table th {
   padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #222;
+  border-bottom: 2px solid var(--border);
+  color: #64748b;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: #111;
 }

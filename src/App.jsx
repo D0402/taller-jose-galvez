@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import Progreso from './components/Progreso';
 import Gestion from './components/Gestion';
 import Inventario from './components/Inventario';
+import Pedidos from './components/Pedidos';
 
 const API = import.meta.env.VITE_API_URL || '/api'
 
@@ -11,6 +12,8 @@ export default function App() {
   const [tab, setTab] = useState('progreso');
   const [reparaciones, setReparaciones] = useState([]);
   const [inventario, setInventario] = useState([]);
+  const [pedidosNuevos, setPedidosNuevos] = useState(0);
+  const ultimoConteo = useRef(0);
 
   const cargarDatos = async () => {
     try {
@@ -19,7 +22,6 @@ export default function App() {
       const resRep = await fetch(`${API}/reparaciones`, { headers });
       const todasRep = await resRep.json();
 
-      // Si es cliente, filtrar solo sus órdenes por nombre
       if (sesion?.rol === 'cliente') {
         const suyas = todasRep.filter(r =>
           (r.cliente ?? r.CLIENTE ?? '').toLowerCase() === sesion.correo.toLowerCase()
@@ -31,6 +33,18 @@ export default function App() {
 
       const resInv = await fetch(`${API}/inventario`, { headers });
       setInventario(await resInv.json());
+
+      // Contar pedidos nuevos solo para admin
+      if (sesion?.rol === 'admin') {
+        const resVentas = await fetch(`${API}/ventas`, { headers });
+        const dataVentas = await resVentas.json();
+        const totalVentas = new Set(dataVentas.map(v => v.id)).size;
+        if (totalVentas > ultimoConteo.current) {
+          setPedidosNuevos(prev => prev + (totalVentas - ultimoConteo.current));
+        }
+        ultimoConteo.current = totalVentas;
+      }
+
     } catch (error) {
       console.error('Error cargando datos:', error);
     }
@@ -55,6 +69,8 @@ export default function App() {
     setSesion(null);
     localStorage.removeItem('sesion_jg');
     setTab('progreso');
+    setPedidosNuevos(0);
+    ultimoConteo.current = 0;
   };
 
   if (!sesion) return <Login onLogin={handleLogin} />;
@@ -73,10 +89,9 @@ export default function App() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
       <header style={{ background: '#4f46e5', padding: '12px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '38px', height: '38px', background: 'rgba(255,255,255,0.2)',
@@ -108,11 +123,30 @@ export default function App() {
           {navBtn('productos', '📦 Catálogo')}
           {esAdmin && navBtn('gestion', '⚙️ Gestión')}
           {esAdmin && navBtn('repuestos', '🔧 Repuestos')}
+          {esAdmin && (
+            <button onClick={() => { setTab('pedidos'); setPedidosNuevos(0); }} style={{
+              background: tab === 'pedidos' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+              border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px',
+              fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              fontWeight: tab === 'pedidos' ? '500' : '400'
+            }}>
+              🛒 Pedidos
+              {pedidosNuevos > 0 && (
+                <span style={{
+                  background: '#ef4444', color: 'white',
+                  borderRadius: '10px', padding: '1px 7px',
+                  fontSize: '11px', fontWeight: '600'
+                }}>
+                  {pedidosNuevos}
+                </span>
+              )}
+            </button>
+          )}
         </nav>
       </header>
 
       <main style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto' }}>
-        {tab === 'progreso' && <Progreso reparaciones={reparaciones} />}
+      {tab === 'progreso' && <Progreso reparaciones={reparaciones} sesion={sesion} />}
         {tab === 'productos' && (
           <Inventario items={inventario} tipo="productos" API={API} onUpdate={cargarDatos} esVendedor={esAdmin} token={sesion.token} />
         )}
@@ -121,6 +155,9 @@ export default function App() {
         )}
         {tab === 'repuestos' && esAdmin && (
           <Inventario items={inventario} tipo="repuestos" API={API} onUpdate={cargarDatos} esVendedor={esAdmin} token={sesion.token} />
+        )}
+        {tab === 'pedidos' && esAdmin && (
+          <Pedidos API={API} token={sesion.token} />
         )}
       </main>
     </div>
