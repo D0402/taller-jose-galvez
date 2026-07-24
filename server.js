@@ -4,6 +4,7 @@ import cors from 'cors'
 import pg from 'pg'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { normalizarTelefono, enviarWhatsApp } from './api/whatsapp.js'
 
 dotenv.config()
 
@@ -17,11 +18,26 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jose_galvez_secret_2024'
 const PORT = process.env.PORT || 3001
+const WHATSAPP_PUBLICO = process.env.WHATSAPP_PUBLIC_NUMBER || ''
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+
+async function asegurarColumnas() {
+  try {
+    await pool.query(`
+      ALTER TABLE reparaciones
+      ADD COLUMN IF NOT EXISTS telefono VARCHAR(32)
+    `)
+  } catch (err) {
+    console.warn('No se pudo asegurar columna telefono:', err.message)
+  }
+}
+
+asegurarColumnas()
 
 // =========================
 // MIDDLEWARE
@@ -102,14 +118,15 @@ app.get('/api/reparaciones', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
-      id,
-      cliente,
-      equipo,
-      falla,
-      progreso,
-      estado
+        id,
+        cliente,
+        equipo,
+        falla,
+        progreso,
+        estado,
+        telefono
       FROM reparaciones
-      WHERE estado != 'Entregado'  -- 👈 Oculta las ya entregadas de la vista activa
+      WHERE estado != 'Entregado'
       ORDER BY id DESC
     `)
 
@@ -120,17 +137,34 @@ app.get('/api/reparaciones', async (req, res) => {
 })
 
 app.post('/api/reparaciones', async (req, res) => {
-  const { cliente, equipo, falla } = req.body
+  const { cliente, equipo, falla, telefono } = req.body
+  const tel = normalizarTelefono(telefono)
 
   try {
-    await pool.query(`
-      INSERT INTO reparaciones
-      (cliente,equipo,falla,progreso,estado)
-      VALUES
-      ($1,$2,$3,0,'Recibido')
-    `, [cliente, equipo, falla])
+    const result = await pool.query(
+      `INSERT INTO reparaciones
+        (cliente, equipo, falla, progreso, estado, telefono)
+       VALUES ($1, $2, $3, 0, 'Recibido', $4)
+       RETURNING id`,
+      [cliente, equipo, falla, tel || null]
+    )
 
-    res.status(201).json({ success: true })
+    const ordenId = result.rows[0].id
+
+    // Aviso inicial al cliente por WhatsApp
+    if (tel) {
+      await enviarWhatsApp({
+        to: tel,
+        body:
+          `🔧 *Servicio Técnico José Gálvez*\n` +
+          `Hola ${cliente}, registramos tu equipo *${equipo}*.\n` +
+          `Orden #${ordenId}.\n\n` +
+          `Responde a este chat de WhatsApp para hablar con el taller. ` +
+          `El administrador te escribe desde la página web.`,
+      })
+    }
+
+    res.status(201).json({ success: true, id: ordenId })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -416,7 +450,9 @@ app.get('/api/historial/reparaciones', async (req, res) => {
   }
 })
 // =========================
-// MENSAJES (CHAT) - NUEVO
+// MENSAJES (CHAT)
+// Admin → escribe en la web → se reenvía por WhatsApp al cliente
+// Cliente → responde por WhatsApp → webhook → aparece en la web
 // =========================
 
 app.get('/api/mensajes', async (req, res) => {
@@ -440,28 +476,140 @@ app.get('/api/mensajes', async (req, res) => {
   }
 })
 
+app.get('/api/whatsapp/info', (_req, res) => {
+  res.json({
+    numeroPublico: WHATSAPP_PUBLICO,
+    configurado: Boolean(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_WHATSAPP_FROM
+    ),
+  })
+})
+
 app.post('/api/mensajes', async (req, res) => {
   const { reparacion_id, autor, nombre, contenido } = req.body
+  const autorNorm = String(autor || '').toLowerCase().trim()
 
   if (!reparacion_id || !autor || !nombre || !contenido) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios' })
   }
 
+  // Solo el admin puede publicar mensajes desde la API web
+  if (autorNorm !== 'admin') {
+    return res.status(403).json({
+      error: 'El cliente debe escribir por WhatsApp, no desde la web.',
+    })
+  }
+
   try {
     const result = await pool.query(
       `INSERT INTO mensajes (reparacion_id, autor, nombre, contenido, fecha)
-       VALUES ($1, $2, $3, $4, NOW())
+       VALUES ($1, 'admin', $2, $3, NOW())
        RETURNING id, fecha`,
-      [reparacion_id, autor, nombre, contenido.trim()]
+      [reparacion_id, nombre || 'Administrador', contenido.trim()]
     )
 
-    res.status(201).json({ 
-      success: true, 
-      id: result.rows[0].id, 
-      fecha: result.rows[0].fecha 
+    const rep = await pool.query(
+      `SELECT id, cliente, equipo, telefono FROM reparaciones WHERE id = $1`,
+      [reparacion_id]
+    )
+    const orden = rep.rows[0]
+    let whatsapp = { ok: false, skipped: true }
+
+    if (orden?.telefono) {
+      whatsapp = await enviarWhatsApp({
+        to: orden.telefono,
+        body:
+          `🔧 *Taller José Gálvez* — Orden #${orden.id}\n` +
+          `(${orden.equipo})\n\n` +
+          `${contenido.trim()}\n\n` +
+          `_Responde este mensaje para continuar el chat._`,
+      })
+    }
+
+    res.status(201).json({
+      success: true,
+      id: result.rows[0].id,
+      fecha: result.rows[0].fecha,
+      whatsapp,
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * Webhook Twilio WhatsApp (cliente escribe aquí).
+ * Configurar en Twilio: POST https://TU_DOMINIO/api/whatsapp/webhook
+ */
+app.post('/api/whatsapp/webhook', async (req, res) => {
+  try {
+    const fromRaw = req.body.From || '' // whatsapp:+51999...
+    const body = String(req.body.Body || '').trim()
+    const tel = normalizarTelefono(fromRaw.replace(/^whatsapp:/i, ''))
+
+    if (!tel || !body) {
+      res.type('text/xml').send('<Response></Response>')
+      return
+    }
+
+    // Opcional: el cliente puede escribir "#12 mensaje" para fijar la orden
+    let reparacionId = null
+    let contenido = body
+    const matchOrden = body.match(/^#(\d+)\s*([\s\S]*)$/)
+    if (matchOrden) {
+      reparacionId = Number(matchOrden[1])
+      contenido = (matchOrden[2] || '').trim() || body
+    }
+
+    let orden
+    if (reparacionId) {
+      const r = await pool.query(
+        `SELECT id, cliente, telefono FROM reparaciones
+         WHERE id = $1 AND estado != 'Entregado'`,
+        [reparacionId]
+      )
+      orden = r.rows[0]
+      // Si el teléfono no coincide, no aceptar
+      if (orden && normalizarTelefono(orden.telefono) !== tel) {
+        orden = null
+      }
+    }
+
+    if (!orden) {
+      const r = await pool.query(
+        `SELECT id, cliente, telefono FROM reparaciones
+         WHERE regexp_replace(COALESCE(telefono, ''), '[^0-9]', '', 'g') = $1
+           AND estado != 'Entregado'
+         ORDER BY id DESC
+         LIMIT 1`,
+        [tel]
+      )
+      orden = r.rows[0]
+    }
+
+    if (!orden) {
+      await enviarWhatsApp({
+        to: tel,
+        body:
+          'No encontramos una orden activa con este número. ' +
+          'Indica al taller tu WhatsApp al registrar el equipo, o escribe: #NÚMERO tu mensaje',
+      })
+      res.type('text/xml').send('<Response></Response>')
+      return
+    }
+
+    await pool.query(
+      `INSERT INTO mensajes (reparacion_id, autor, nombre, contenido, fecha)
+       VALUES ($1, 'cliente', $2, $3, NOW())`,
+      [orden.id, orden.cliente || 'Cliente', contenido]
+    )
+
+    res.type('text/xml').send('<Response></Response>')
+  } catch (err) {
+    console.error('Error webhook WhatsApp:', err)
+    res.type('text/xml').send('<Response></Response>')
   }
 })
 
@@ -472,4 +620,7 @@ app.post('/api/mensajes', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Backend corriendo en http://localhost:${PORT}`)
+  if (!process.env.TWILIO_ACCOUNT_SID) {
+    console.log('ℹ️ WhatsApp: configura TWILIO_* y WHATSAPP_PUBLIC_NUMBER en .env')
+  }
 })

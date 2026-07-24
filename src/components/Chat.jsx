@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
-export default function Chat({ reparacionId, autor, nombre }) {
+export default function Chat({ reparacionId, autor, nombre, telefonoCliente }) {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState('');
+  const [waInfo, setWaInfo] = useState({ numeroPublico: '', configurado: false });
   const chatContainerRef = useRef(null);
 
-  const rolActivo = (autor || '').toLowerCase().trim();
+  const esAdmin = (autor || '').toLowerCase().trim() === 'admin';
 
-  // Función para limpiar correos en pantalla (ej: "jimena@gmail.com" -> "jimena")
   const formatearNombre = (str) => {
     if (!str) return 'Usuario';
     return str.includes('@') ? str.split('@')[0] : str;
@@ -33,6 +34,13 @@ export default function Chat({ reparacionId, autor, nombre }) {
   }, [reparacionId]);
 
   useEffect(() => {
+    fetch(`${API}/whatsapp/info`)
+      .then((r) => r.json())
+      .then(setWaInfo)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
@@ -40,31 +48,47 @@ export default function Chat({ reparacionId, autor, nombre }) {
 
   const enviar = async (e) => {
     e.preventDefault();
-    if (!texto.trim()) return;
+    if (!esAdmin || !texto.trim()) return;
     setEnviando(true);
-  
-    const autorEnvio = rolActivo === 'admin' ? 'admin' : 'cliente';
-    const nombreEnvio = rolActivo === 'admin' ? 'Administrador' : nombre;
-  
+    setAviso('');
+
     try {
-      await fetch(`${API}/mensajes`, {
+      const res = await fetch(`${API}/mensajes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          reparacion_id: reparacionId, 
-          autor: autorEnvio, 
-          nombre: nombreEnvio,
-          contenido: texto.trim() 
-        })
+        body: JSON.stringify({
+          reparacion_id: reparacionId,
+          autor: 'admin',
+          nombre: 'Administrador',
+          contenido: texto.trim(),
+        }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        setAviso(data.error || 'No se pudo enviar');
+        return;
+      }
+      if (data.whatsapp?.skipped) {
+        setAviso('Guardado en el chat. WhatsApp no está configurado en el servidor.');
+      } else if (data.whatsapp && data.whatsapp.ok === false) {
+        setAviso(data.whatsapp.error || 'No se pudo enviar por WhatsApp (revisa el teléfono).');
+      } else if (!telefonoCliente) {
+        setAviso('Guardado. Esta orden no tiene teléfono WhatsApp registrado.');
+      }
       setTexto('');
       cargarMensajes();
     } catch (err) {
       console.error(err);
+      setAviso('Error de red al enviar.');
     } finally {
       setEnviando(false);
     }
   };
+
+  const numeroWa = waInfo.numeroPublico || '';
+  const linkWa = numeroWa
+    ? `https://wa.me/${String(numeroWa).replace(/\D/g, '')}?text=${encodeURIComponent(`#${reparacionId} `)}`
+    : null;
 
   return (
     <div style={{
@@ -79,6 +103,11 @@ export default function Chat({ reparacionId, autor, nombre }) {
         <p style={{ margin: 0, color: 'white', fontSize: '13px', fontWeight: '600' }}>
           💬 Chat de la orden
         </p>
+        <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.85)', fontSize: '11px' }}>
+          {esAdmin
+            ? 'Tú escribes aquí · el cliente recibe y responde por WhatsApp'
+            : 'Solo lectura · responde al taller por WhatsApp'}
+        </p>
       </div>
 
       <div
@@ -92,18 +121,18 @@ export default function Chat({ reparacionId, autor, nombre }) {
       >
         {mensajes.length === 0 ? (
           <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', margin: 'auto' }}>
-            No hay mensajes aún. ¡Escribe el primero!
+            {esAdmin
+              ? 'Aún no hay mensajes. Escribe al cliente; se enviará por WhatsApp.'
+              : 'Cuando el taller te escriba, verás los mensajes aquí y en WhatsApp.'}
           </p>
         ) : (
           mensajes.map(msg => {
             const msgAutor = (msg.autor || '').toLowerCase().trim();
-            const esMio = msgAutor === rolActivo;
+            const esMio = esAdmin ? msgAutor === 'admin' : msgAutor === 'cliente';
 
-            // Corrección absoluta basada en el rol del mensaje
             let nombreEnPantalla = formatearNombre(msg.nombre);
-            if (msgAutor === 'admin') {
-              nombreEnPantalla = 'Administrador';
-            }
+            if (msgAutor === 'admin') nombreEnPantalla = 'Administrador';
+            if (msgAutor === 'cliente') nombreEnPantalla = nombreEnPantalla || 'Cliente (WhatsApp)';
 
             return (
               <div key={msg.id} style={{
@@ -111,7 +140,10 @@ export default function Chat({ reparacionId, autor, nombre }) {
                 alignItems: esMio ? 'flex-end' : 'flex-start'
               }}>
                 <span style={{ fontSize: '10px', color: '#64748b', marginBottom: '3px', fontWeight: '500' }}>
-                  {nombreEnPantalla} · {new Date(msg.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                  {nombreEnPantalla}
+                  {msgAutor === 'cliente' ? ' · WhatsApp' : ''}
+                  {' · '}
+                  {new Date(msg.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 <div style={{
                   background: esMio ? '#4f46e5' : '#ffffff',
@@ -131,36 +163,79 @@ export default function Chat({ reparacionId, autor, nombre }) {
         )}
       </div>
 
-      <form onSubmit={enviar} style={{
-        display: 'flex', gap: '8px', padding: '12px 14px',
-        background: '#fff', borderTop: '2px solid #94a3b8'
-      }}>
-        <input
-          type="text"
-          placeholder="Escribe un mensaje..."
-          value={texto}
-          onChange={e => setTexto(e.target.value)}
-          style={{
-            flex: 1, padding: '9px 12px', borderRadius: '8px',
-            border: '1.5px solid #94a3b8', fontSize: '13px',
-            outline: 'none', color: '#1e293b', background: '#f8fafc',
-            fontWeight: '500'
-          }}
-        />
-        <button
-          type="submit"
-          disabled={enviando || !texto.trim()}
-          style={{
-            background: enviando || !texto.trim() ? '#94a3b8' : '#4f46e5',
-            color: 'white', border: 'none',
-            padding: '9px 18px', borderRadius: '8px',
-            fontSize: '13px', fontWeight: '600',
-            cursor: "pointer"
-          }}
-        >
-          {enviando ? '...' : 'Enviar'}
-        </button>
-      </form>
+      {esAdmin ? (
+        <form onSubmit={enviar} style={{
+          display: 'flex', flexDirection: 'column', gap: '8px',
+          padding: '12px 14px', background: '#fff', borderTop: '2px solid #94a3b8'
+        }}>
+          {!telefonoCliente && (
+            <p style={{ margin: 0, fontSize: '12px', color: '#b45309', background: '#fffbeb', padding: '8px', borderRadius: '8px' }}>
+              ⚠️ Esta orden no tiene WhatsApp. Agrégalo al registrar el ingreso para poder escribirle al cliente.
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="Mensaje al cliente (se envía por WhatsApp)..."
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              style={{
+                flex: 1, padding: '9px 12px', borderRadius: '8px',
+                border: '1.5px solid #94a3b8', fontSize: '13px',
+                outline: 'none', color: '#1e293b', background: '#f8fafc',
+                fontWeight: '500'
+              }}
+            />
+            <button
+              type="submit"
+              disabled={enviando || !texto.trim()}
+              style={{
+                background: enviando || !texto.trim() ? '#94a3b8' : '#25D366',
+                color: 'white', border: 'none',
+                padding: '9px 18px', borderRadius: '8px',
+                fontSize: '13px', fontWeight: '600',
+                cursor: 'pointer', whiteSpace: 'nowrap'
+              }}
+            >
+              {enviando ? '...' : 'Enviar WA'}
+            </button>
+          </div>
+          {aviso && (
+            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{aviso}</p>
+          )}
+        </form>
+      ) : (
+        <div style={{
+          padding: '14px', background: '#ecfdf5', borderTop: '2px solid #94a3b8',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#065f46', fontWeight: '500' }}>
+            Para hablar con el taller, escribe por WhatsApp
+            {numeroWa ? ` al ${numeroWa}` : ''}.
+          </p>
+          {linkWa ? (
+            <a
+              href={linkWa}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-block', background: '#25D366', color: '#fff',
+                padding: '10px 18px', borderRadius: '8px', fontSize: '13px',
+                fontWeight: '600', textDecoration: 'none'
+              }}
+            >
+              Abrir WhatsApp
+            </a>
+          ) : (
+            <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+              El número de WhatsApp del taller se configura en el servidor (WHATSAPP_PUBLIC_NUMBER).
+            </p>
+          )}
+          <p style={{ margin: '10px 0 0', fontSize: '11px', color: '#64748b' }}>
+            Tip: puedes empezar con <code>#{reparacionId}</code> y tu mensaje.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

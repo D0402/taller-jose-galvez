@@ -26,6 +26,14 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
             style={{ flex: 1 }}
             required
           />
+          <input
+            name="telefono"
+            type="tel"
+            placeholder="WhatsApp (ej: 987654321)"
+            className="input-field"
+            style={{ flex: 1 }}
+            required
+          />
           <input name="equipo" placeholder="Equipo (Ej: Laptop Asus)" className="input-field" style={{ flex: 1 }} required />
           <input name="falla" placeholder="Falla reportada" className="input-field" style={{ flex: 1 }} required />
           <button type="submit" className="btn-save" style={{ padding: '0 25px' }}>Guardar Equipo</button>
@@ -92,6 +100,7 @@ export default function Gestion({ reparaciones, API, onUpdate }) {
                 <strong>{rep.equipo ?? rep.EQUIPO}</strong><br />
                 <small style={{ color: 'var(--text-gray)' }}>
                   Cliente: {rep.cliente ?? rep.CLIENTE} (Orden #{id})
+                  {(rep.telefono || rep.TELEFONO) ? ` · WA ${rep.telefono || rep.TELEFONO}` : ' · sin WhatsApp'}
                 </small>
                 <div style={{ marginTop: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>

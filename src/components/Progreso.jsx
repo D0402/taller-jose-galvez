@@ -56,9 +56,10 @@ export default function Progreso({ reparaciones, sesion }) {
           const falla    = rep.FALLA   ?? rep.falla    ?? '';
           const progreso = Number(rep.PROGRESO ?? rep.progreso ?? 0);
           const estado   = rep.ESTADO  ?? rep.estado   ?? '';
+          const telefono = rep.TELEFONO ?? rep.telefono ?? '';
           const badge    = badgeEstado(estado);
 
-          // 🧠 Ajuste dinámico de los roles del Chat
+          // Admin escribe en la web; cliente solo por WhatsApp
           const chatAutor = esAdmin ? 'admin' : 'cliente';
           const chatNombre = esAdmin ? 'Administrador' : cliente;
 
@@ -128,6 +129,7 @@ export default function Progreso({ reparaciones, sesion }) {
                   reparacionId={id}
                   autor={chatAutor}
                   nombre={chatNombre}
+                  telefonoCliente={telefono}
                 />
               </div>
             </div>
