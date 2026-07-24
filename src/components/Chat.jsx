@@ -85,7 +85,7 @@ export default function Chat({ reparacionId, autor, nombre, telefonoCliente }) {
     }
   };
 
-  const numeroWa = waInfo.numeroPublico || '';
+  const numeroWa = waInfo.numeroPublico || '51907893557';
   const linkWa = numeroWa
     ? `https://wa.me/${String(numeroWa).replace(/\D/g, '')}?text=${encodeURIComponent(`#${reparacionId} `)}`
     : null;
